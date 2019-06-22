@@ -8,7 +8,7 @@ import (
   "os"
   "golang.org/crypto/bcrypt"
 )
-
+//Standard Claim
 type Token struct {
   UserId uint 
   jwt.StandardClaim
@@ -43,7 +43,7 @@ func (user *User) Validate() (map[string] interface{}, bool){
   if temp.Email != " "{
 	return u.Message(false, "Email already exist"), false
   }
-  return u.Message(false, "Account Created"), true )
+  return u.Message(false, "Account Created"), true
 }
 
 /*
@@ -69,3 +69,25 @@ func (user *User) Create(map[string] interface{}){
   response["account"] = account
   return response
 
+func Login(email, password string)(map[string] interface{}){
+  user := &User{}
+  err := GetDB().Table("user").Where("email=?", user.Email).First(temp).Error
+  if err!= nil{
+	if err == gorm.ErrRecordNotFound{
+	  return u.Message(false,"Details Doesnt Exist")
+	return u.Message(false, "Error in Connection")
+
+  err := bcrypt.CompareHashPassword([]byte(account.Password), []byte(password))
+  if err!=nil && err==bcrypt.ErrMismatchedHashAndPassword{
+	return u.Message(false, "Invalid Details")
+  }
+
+  user.Password = " "
+  tk := &Token{UserId: account.ID}
+  token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
+  tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
+  account.Token = tokenString //Store the token in the response
+
+  resp := u.Message(true, "Logged In")
+  resp["account"] = account
+  return resp
