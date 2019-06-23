@@ -1,6 +1,7 @@
 package models
 
 import (
+  _ "github.com/jinzhu/gorm/dialects/postgres"
   "github.com/jinzhu/gorm"
   "os"
   "fmt"

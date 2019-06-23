@@ -25,6 +25,11 @@ type User struct {
 	Token string `json:"token";sql:"-"`
 }
 
+
+func FindVal() *gorm.DB {
+	return db
+}
+
 //Validate incoming user details...
 func (user *User) Validate() (map[string] interface{}, bool) {
 
@@ -40,7 +45,7 @@ func (user *User) Validate() (map[string] interface{}, bool) {
 	temp := &User{}
 
 	//check for errors and duplicate emails
-	err := GetDB().Table("users").Where("email = ?", user.Email).First(temp).Error
+	err := FindVal().Table("users").Where("email = ?", user.Email).First(temp).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return u.Message(false, "Connection error. Please retry"), false
 	}
@@ -60,7 +65,7 @@ func (user *User) Create() (map[string] interface{}) {
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	user.Password = string(hashedPassword)
 
-	GetDB().Create(user)
+	FindVal().Create(user)
 
 	if user.ID <= 0 {
 		return u.Message(false, "Failed to create user, connection error.")
@@ -82,7 +87,7 @@ func (user *User) Create() (map[string] interface{}) {
 func Login(email, password string) (map[string]interface{}) {
 
 	user := &User{}
-	err := GetDB().Table("users").Where("email = ?", email).First(user).Error
+	err := FindVal().Table("users").Where("email = ?", email).First(user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return u.Message(false, "Email address not found")
@@ -111,7 +116,7 @@ func Login(email, password string) (map[string]interface{}) {
 func GetUser(u uint) *User {
 
 	acc := &User{}
-	GetDB().Table("users").Where("id = ?", u).First(acc)
+	FindVal().Table("users").Where("id = ?", u).First(acc)
 	if acc.Email == "" { //User not found!
 		return nil
 	}
