@@ -46,16 +46,22 @@ func (user *User) Validate() (map[string] interface{}, bool) {
 
 	//check for errors and duplicate emails
 	err := FindVal().Table("users").Where("email = ?", user.Email).First(temp).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return u.Message(false, "Connection error. Please retry"), false
+	if err != nil{
+	  if err!= gorm.ErrRecordNotFound{
+		return u.Message(false,"Error" ), false
 	}
-	if temp.Email != "" {
-		return u.Message(false, "Email address already in use by another user."), false
-	}
-
-	return u.Message(false, "Requirement passed"), true
+  }
+  if temp.Email != "" {
+	return u.Message(false, "Email address already in use by another user."), false
+  }
+  return u.Message(false, "Requirement passed"), true
 }
 
+/*
+	
+	Create The User Account 
+
+*/
 func (user *User) Create() (map[string] interface{}) {
 
 	if resp, ok := user.Validate(); !ok {
