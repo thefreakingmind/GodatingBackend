@@ -5,6 +5,7 @@ import (
 	"strings"
 	"github.com/jinzhu/gorm"
 	"os"
+	u "github.com/thefreakingmind12/godating/helper"
 	"golang.org/x/crypto/bcrypt"
 )
 

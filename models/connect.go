@@ -1,8 +1,10 @@
-package model
+package models
 
 import (
   "github.com/jinzhu/gorm"
   "os"
+  "fmt"
+  "github.com/joho/godotenv"
 )
 
 var db *gorm.DB
@@ -16,7 +18,7 @@ func init(){
   password := os.Getenv("db_password")
   dbname := os.Getenv("db_name")
   dbHost := os.Getenv("db_host")
-  dbUri := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable password=%s", dbHost, username, dbName, password) //Build connection string
+  dbUri := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable password=%s", dbHost, username, dbname, password) //Build connection string
   fmt.Println(dbUri)
   conn, err :=gorm.Open("postgres", dbUri)
 
@@ -24,7 +26,7 @@ func init(){
 	fmt.Println("Error")
   }
   db = conn
-  db.Debug().Automigrate(&User{})
+  db.Debug().AutoMigrate(&User{})
 }
 
 func startDB() *gorm.DB{
