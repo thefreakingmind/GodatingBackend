@@ -1,93 +1,120 @@
-package model
+package models
 
 import (
-  "github.com/dgrijalva/jwt-go"
-  "utils"
-  "strings"
-  "github.com/jinzhu/gorm"
-  "os"
-  "golang.org/crypto/bcrypt"
+	"github.com/dgrijalva/jwt-go"
+	"strings"
+	"github.com/jinzhu/gorm"
+	"os"
+	"golang.org/x/crypto/bcrypt"
 )
-//Standard Claim
+
+/*
+JWT claims struct
+*/
 type Token struct {
-  UserId uint 
-  jwt.StandardClaim
+	UserId uint
+	jwt.StandardClaims
 }
 
+//a struct to rep user user
 type User struct {
-  gorm.Model
-  Email string 'json:"email"'
-  Password string 'json:"password"'
-  Token string 'json:"token";sql:"-"'
+	gorm.Model
+	Email string `json:"email"`
+	Password string `json:"password"`
+	Token string `json:"token";sql:"-"`
 }
 
-/*
+//Validate incoming user details...
+func (user *User) Validate() (map[string] interface{}, bool) {
 
-Account Validation
+	if !strings.Contains(user.Email, "@") {
+		return u.Message(false, "Email address is required"), false
+	}
 
-*/
-func (user *User) Validate() (map[string] interface{}, bool){
-  if !string.Contains(user.Email, "@"){
-	return u.Message(false, "Please Enter The Email Address"),false
-  }
+	if len(user.Password) < 6 {
+		return u.Message(false, "Password is required"), false
+	}
 
-  if len(user.password)<6{
-	return u.Message(false, "Please Enter The Password with more then 6 Char"), false
-  }
+	//Email must be unique
+	temp := &User{}
 
-  temp := &User{}
-  err := GetDB().Table("user").Where("email = ?", user.Email).First(temp).Error
-  if err!=nil && err!= gorm.ErrRecordNotFound{
-	return u.Message(false, "Error"), false
-  }
-  if temp.Email != " "{
-	return u.Message(false, "Email already exist"), false
-  }
-  return u.Message(false, "Account Created"), true
+	//check for errors and duplicate emails
+	err := GetDB().Table("users").Where("email = ?", user.Email).First(temp).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return u.Message(false, "Connection error. Please retry"), false
+	}
+	if temp.Email != "" {
+		return u.Message(false, "Email address already in use by another user."), false
+	}
+
+	return u.Message(false, "Requirement passed"), true
 }
 
-/*
+func (user *User) Create() (map[string] interface{}) {
 
-Account Created
+	if resp, ok := user.Validate(); !ok {
+		return resp
+	}
 
-*/
-func (user *User) Create(map[string] interface{}){
-  if res, ok := user.Validate(); !ok{
-	return res
-  }
-  hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-  user.Password = string(hashedPassword)
-  GetDB.Create(user)
-  if user.Id <=0{
-	return u.Message(false, "Cannot Create The Account"),false
-  }
-  tk := &Token{UserID: user.ID}
-  token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
-  tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
-  user.token := tokenString
-  response = u.Message("Account Created")
-  response["account"] = account
-  return response
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	user.Password = string(hashedPassword)
 
-func Login(email, password string)(map[string] interface{}){
-  user := &User{}
-  err := GetDB().Table("user").Where("email=?", user.Email).First(temp).Error
-  if err!= nil{
-	if err == gorm.ErrRecordNotFound{
-	  return u.Message(false,"Details Doesnt Exist")
-	return u.Message(false, "Error in Connection")
+	GetDB().Create(user)
 
-  err := bcrypt.CompareHashPassword([]byte(account.Password), []byte(password))
-  if err!=nil && err==bcrypt.ErrMismatchedHashAndPassword{
-	return u.Message(false, "Invalid Details")
-  }
+	if user.ID <= 0 {
+		return u.Message(false, "Failed to create user, connection error.")
+	}
 
-  user.Password = " "
-  tk := &Token{UserId: account.ID}
-  token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
-  tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
-  account.Token = tokenString //Store the token in the response
+	//Create new JWT token for the newly registered user
+	tk := &Token{UserId: user.ID}
+	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
+	tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
+	user.Token = tokenString
 
-  resp := u.Message(true, "Logged In")
-  resp["account"] = account
-  return resp
+	user.Password = "" //delete password
+
+	response := u.Message(true, "User has been created")
+	response["user"] = user
+	return response
+}
+
+func Login(email, password string) (map[string]interface{}) {
+
+	user := &User{}
+	err := GetDB().Table("users").Where("email = ?", email).First(user).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return u.Message(false, "Email address not found")
+		}
+		return u.Message(false, "Connection error. Please retry")
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword { //Password does not match!
+		return u.Message(false, "Invalid login credentials. Please try again")
+	}
+	//Worked! Logged In
+	user.Password = ""
+
+	//Create JWT token
+	tk := &Token{UserId: user.ID}
+	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
+	tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
+	user.Token = tokenString //Store the token in the response
+
+	resp := u.Message(true, "Logged In")
+	resp["user"] = user
+	return resp
+}
+
+func GetUser(u uint) *User {
+
+	acc := &User{}
+	GetDB().Table("users").Where("id = ?", u).First(acc)
+	if acc.Email == "" { //User not found!
+		return nil
+	}
+
+	acc.Password = ""
+	return acc
+}

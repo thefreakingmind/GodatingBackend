@@ -1,9 +1,7 @@
 package model
 
 import (
-  "github.com/jinzhu/gorm/dialects/postgres"
   "github.com/jinzhu/gorm"
-  "net/http"
   "os"
 )
 
