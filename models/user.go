@@ -25,7 +25,7 @@ type User struct {
 	Token string `json:"token";sql:"-"`
 }
 
-
+// Dereferacing DB Object
 func FindVal() *gorm.DB {
 	return db
 }
