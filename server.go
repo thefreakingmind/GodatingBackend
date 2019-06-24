@@ -7,8 +7,8 @@ import (
   "time"
 	"log"
 	"os"
-  "strings"
-  "context"
+  _"strings"
+  _"context"
 	"net/http"
 	"golang.org/x/crypto/bcrypt"
 	"github.com/jinzhu/gorm"
@@ -80,7 +80,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request){
   }
   user.Password = string(pass)
   createdUser := db.Create(user)
-  var errMessage = createdUser.Error
+  //var errMessage = createdUser.Error
   if createdUser.Error != nil{
 	fmt.Println("Error")
   }
@@ -131,28 +131,13 @@ func Find(email, password string) map[string]interface{} {
   return resp
 }
 
-func JwtVerify(next http.Handler) http.Handler {
-  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	var header = r.Header.Get("x-access-token") //Grab the token from the header
-	header = strings.TrimSpace(header)
-	if header == "" {
-	  w.WriteHeader(http.StatusForbidden)
-	  json.NewEncoder(w).Encode(Exception{Message: "Missing auth token"})
-	  return
-	}
-	tk := &Claims{}
-	test, err := jwt.ParseWithClaims(header, tk, func(token *jwt.Token) (interface{}, error) {
-	  return []byte("secret"), nil
-	})
-	if err != nil {
-	  w.WriteHeader(http.StatusForbidden)
-	  json.NewEncoder(w).Encode(Exception{Message: err.Error()})
-	  return
-	}
-	ctx := context.WithValue(r.Context(), "user", tk)
-	next.ServeHTTP(w, r.WithContext(ctx))
-  })
-}
+
+
+
+
+
+
+
 
 func main(){
   router := mux.NewRouter()
