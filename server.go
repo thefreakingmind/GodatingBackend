@@ -132,13 +132,6 @@ func Find(email, password string) map[string]interface{} {
 }
 
 
-
-
-
-
-
-
-
 func main(){
   router := mux.NewRouter()
   router.HandleFunc("/register", CreateUser).Methods("POST")
